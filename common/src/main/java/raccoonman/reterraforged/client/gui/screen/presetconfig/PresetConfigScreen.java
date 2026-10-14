@@ -68,28 +68,30 @@ public class PresetConfigScreen extends LinkedPageScreen {
 	
 	public void exportAsDatapack(Path outputPath, PresetEntry presetEntry) throws IOException {
 		Path datagenPath = Files.createTempDirectory("datagen-target-");
-		Path datagenOutputPath = datagenPath.resolve("output");
-		
-		RegistryAccess registryAccess = this.getSettings().worldgenLoadContext();
+		try {
+			Path datagenOutputPath = datagenPath.resolve("output");
+			
+			RegistryAccess registryAccess = this.getSettings().worldgenLoadContext();
 
-		Preset preset = presetEntry.getPreset();
-		Component presetName = presetEntry.getName();
-		
-		DataGenerator dataGenerator = Datapacks.makePreset(preset, registryAccess, datagenPath, datagenOutputPath, presetName.getString());
-		dataGenerator.run();
-		copyToZip(datagenOutputPath, outputPath);
-		PathUtils.deleteDirectory(datagenPath);
-		
-		RTFCommon.LOGGER.info("Exported datapack to {}", outputPath);
+			Preset preset = presetEntry.getPreset();
+			Component presetName = presetEntry.getName();
+			
+			DataGenerator dataGenerator = Datapacks.makePreset(preset, registryAccess, datagenPath, datagenOutputPath, presetName.getString());
+			dataGenerator.run();
+			Files.deleteIfExists(outputPath);
+			copyToZip(datagenOutputPath, outputPath);
+			
+			RTFCommon.LOGGER.info("Exported datapack to {}", outputPath);
+		} finally {
+			PathUtils.deleteDirectory(datagenPath);
+		}
 	}
 	
-	private static void copyToZip(Path input, Path output) {
+	private static void copyToZip(Path input, Path output) throws IOException {
 		Map<String, String> env = ImmutableMap.of("create", "true");
 	    URI uri = URI.create("jar:" + output.toUri());
 	    try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
 	        PathUtils.copyDirectory(input, fs.getPath("/"), StandardCopyOption.REPLACE_EXISTING);
-	    } catch (IOException e) {
-	        e.printStackTrace();
 	    }
 	}
 }

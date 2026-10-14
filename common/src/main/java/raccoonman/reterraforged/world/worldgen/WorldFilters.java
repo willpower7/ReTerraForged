@@ -48,6 +48,7 @@ public class WorldFilters {
         if(optionalFilters) {
         	this.applyCorrections(tile, regionX, regionZ);
         }
+        tile.updateHighestPoints();
     }
     
     private void applyRequiredFilters(Filterable map, int seedX, int seedZ) {

@@ -23,12 +23,13 @@ public class MixinStructure {
 		cancellable = true
 	)
     private static void isValidBiome(GenerationStub generationStub, GenerationContext generationContext, CallbackInfoReturnable<Boolean> callback) {
-		RegistryAccess registry = generationContext.registryAccess();
-		RegistryLookup<StructureRule> structureRules = registry.lookupOrThrow(RTFRegistries.STRUCTURE_RULE);
-		for(StructureRule structureRule : structureRules.listElements().map(Holder::value).toList()) {
-			if(!structureRule.test(generationContext.randomState(), generationStub.position())) {
-				callback.setReturnValue(false);
+		generationContext.registryAccess().lookup(RTFRegistries.STRUCTURE_RULE).ifPresent(structureRules -> {
+			for (Holder.Reference<StructureRule> holder : structureRules.listElements().toList()) {
+				if (!holder.value().test(generationContext.randomState(), generationStub.position())) {
+					callback.setReturnValue(false);
+					return;
+				}
 			}
-		}
+		});
     }
 }

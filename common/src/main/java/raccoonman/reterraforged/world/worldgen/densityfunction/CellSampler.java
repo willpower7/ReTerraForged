@@ -43,6 +43,10 @@ public record CellSampler(Supplier<WorldLookup> deferredLookup, Field field) imp
 		return 1.0F;
 	}
 
+	public static boolean isCachedNoiseChunk(int cellCountXZ) {
+		return cellCountXZ > 1;
+	}
+
 	public static class Cache2d {
 		private long lastPos = Long.MAX_VALUE;
 		private Cell cell = new Cell();

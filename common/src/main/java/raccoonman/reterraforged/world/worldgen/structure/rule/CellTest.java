@@ -28,6 +28,8 @@ record CellTest(float cutoff, Set<Terrain> terrainTypeBlacklist) implements Stru
 		this(cutoff, ImmutableSet.copyOf(terrainTypeBlacklist));
 	}
 	
+	private static final ThreadLocal<Cell> LOCAL_CELL = ThreadLocal.withInitial(Cell::new);
+
 	@Override
 	public boolean test(RandomState randomState, BlockPos pos) {
 		if((Object) randomState instanceof RTFRandomState rtfRandomState) {
@@ -35,16 +37,15 @@ record CellTest(float cutoff, Set<Terrain> terrainTypeBlacklist) implements Stru
 			GeneratorContext generatorContext = rtfRandomState.generatorContext();
 			if(generatorContext != null) {
 				WorldLookup worldLookup = generatorContext.lookup;
-				Cell cell = new Cell();
-				worldLookup.applyCell(cell.reset(), pos.getX(), pos.getZ(), false);
+				Cell cell = LOCAL_CELL.get().reset();
+				worldLookup.applyCell(cell, pos.getX(), pos.getZ(), false);
 				if(cell.riverMask < this.cutoff || this.terrainTypeBlacklist.contains(cell.terrain)) {
 					return false;
 				}
 			}
 			return true;
-		} else {
-			throw new IllegalStateException();
 		}
+		return true;
 	}
 
 	@Override

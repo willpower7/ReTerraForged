@@ -128,6 +128,18 @@ public class Tile implements SafeCloseable, Filterable, CellLookup {
         return chunk;
     }
 	
+	public void updateHighestPoints() {
+		for (Chunk chunk : this.chunks) {
+			if (chunk != null) {
+				for (int dz = 0; dz < 16; dz++) {
+					for (int dx = 0; dx < 16; dx++) {
+						chunk.updateHighestPoint(chunk.getCell(dx, dz));
+					}
+				}
+			}
+		}
+	}
+	
 	public class Chunk {
         private int chunkX;
         private int chunkZ;
@@ -135,6 +147,7 @@ public class Tile implements SafeCloseable, Filterable, CellLookup {
         private int blockZ;
         private int regionBlockX;
         private int regionBlockZ;
+        private float highestPoint;
 		
 		public Chunk(int regionChunkX, int regionChunkZ) {
             this.regionBlockX = regionChunkX << 4;
@@ -143,6 +156,17 @@ public class Tile implements SafeCloseable, Filterable, CellLookup {
             this.chunkZ = Tile.this.chunkZ + regionChunkZ - Tile.this.border;
             this.blockX = this.chunkX << 4;
             this.blockZ = this.chunkZ << 4;
+            this.highestPoint = Float.MIN_VALUE;
+		}
+		
+		public void updateHighestPoint(Cell cell) {
+            if(cell.height > this.highestPoint) {
+            	this.highestPoint = cell.height;
+            }
+		}
+		
+		public float getHighestPoint() {
+			return this.highestPoint != Float.MIN_VALUE ? this.highestPoint : 1.0F;
 		}
 		
         public int getChunkX() {

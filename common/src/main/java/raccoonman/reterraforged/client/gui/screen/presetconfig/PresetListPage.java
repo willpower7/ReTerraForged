@@ -267,9 +267,9 @@ class PresetListPage extends BisectedPage<PresetConfigScreen, PresetEntry, Abstr
 			return PRESET_PATH.resolve(this.name.getString() + ".json");
 		}
 		
-		//FIXME delete old pack before save
 		public void save() throws IOException {
 			if(!this.builtin) {
+				Files.createDirectories(PRESET_PATH);
 				try(
 					Writer writer = Files.newBufferedWriter(this.getPath());
 					JsonWriter jsonWriter = new JsonWriter(writer);

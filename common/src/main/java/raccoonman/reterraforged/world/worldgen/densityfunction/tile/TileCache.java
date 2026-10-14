@@ -32,7 +32,11 @@ public class TileCache implements TileFactory {
 	public Tile provideIfPresent(int tileX, int tileZ) {
 		@Nullable
 		CacheEntry<Entry> entry = this.cache.get(PosUtil.pack(tileX, tileZ));
-		return entry != null ? entry.get().tile : null;
+		if(entry != null) {
+			Entry value = entry.get();
+			return value != null ? value.tile : null;
+		}
+		return null;
 	}
 
 	@Nullable
@@ -55,10 +59,12 @@ public class TileCache implements TileFactory {
 	@Override
 	public void drop(int tileX, int tileZ) {
 		long packedTilePos = PosUtil.pack(tileX, tileZ);
-		//TODO i dont think get should be able to return null here
 		CacheEntry<Entry> entry = this.cache.get(packedTilePos);
-		if(entry != null && entry.get().drop()) {
-			this.cache.remove(packedTilePos);
+		if(entry != null) {
+			Entry value = entry.get();
+			if(value != null && value.drop()) {
+				this.cache.remove(packedTilePos);
+			}
 		}
 	}
 

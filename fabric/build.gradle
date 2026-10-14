@@ -51,6 +51,7 @@ sourceSets {
 }
 
 processResources {
+    duplicatesStrategy "exclude"
     inputs.property "version", project.version
 
     filesMatching("fabric.mod.json") {
@@ -77,6 +78,7 @@ jar {
 }
 
 sourcesJar {
+    duplicatesStrategy "exclude"
     def commonSources = project(":common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }

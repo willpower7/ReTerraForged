@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.server.level.ColumnPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.DensityFunction;
@@ -24,6 +25,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.world.worldgen.GeneratorContext;
 import raccoonman.reterraforged.world.worldgen.RTFRandomState;
+import raccoonman.reterraforged.world.worldgen.WorldGenFlags;
 import raccoonman.reterraforged.world.worldgen.densityfunction.CellSampler;
 import raccoonman.reterraforged.world.worldgen.densityfunction.ConditionalArrayCache;
 import raccoonman.reterraforged.world.worldgen.densityfunction.tile.Tile;
@@ -32,9 +34,12 @@ import raccoonman.reterraforged.world.worldgen.densityfunction.tile.Tile;
 class MixinNoiseChunk {
 	private RandomState randomState;
 	private int chunkX, chunkZ;
+	private int generationHeight;
 	@Nullable
 	private Tile.Chunk chunk;
 	private CellSampler.Cache2d cache2d;
+	private NoiseGeneratorSettings generatorSettings;
+	
 	@Shadow
     @Final
 	int firstNoiseX;
@@ -44,6 +49,11 @@ class MixinNoiseChunk {
 	@Shadow
     @Final
 	private int cellCountXZ;
+	@Shadow
+	private int cellCountY;
+	@Shadow
+    @Final
+    private int cellHeight;
 	
 	@Redirect(
 		at = @At(
@@ -52,16 +62,25 @@ class MixinNoiseChunk {
 		),
 		method = "<init>"
 	)
-	private NoiseRouter NoiseChunk(RandomState randomState1, int cellCountXZ, RandomState randomState2, int minBlockX, int minBlockZ) {
+	private NoiseRouter NoiseChunk(RandomState randomState1, int cellCountXZ, RandomState randomState2, int minBlockX, int minBlockZ, NoiseSettings noiseSettings, DensityFunctions.BeardifierOrMarker beardifierOrMarker, NoiseGeneratorSettings noiseGeneratorSettings) {
 		this.randomState = randomState1;
 		this.chunkX = SectionPos.blockToSectionCoord(minBlockX);
 		this.chunkZ = SectionPos.blockToSectionCoord(minBlockZ);
+		this.generatorSettings = noiseGeneratorSettings;
 		GeneratorContext generatorContext;
-		if((Object) randomState instanceof RTFRandomState rtfRandomState && cellCountXZ > 1 && (generatorContext = rtfRandomState.generatorContext()) != null) {
-			this.chunk = generatorContext.cache.provideAtChunk(this.chunkX, this.chunkZ).getChunkReader(this.chunkX, this.chunkZ);
+		if((Object) this.randomState instanceof RTFRandomState rtfRandomState && (generatorContext = rtfRandomState.generatorContext()) != null) {
+			boolean cache = !WorldGenFlags.fastLookups() || CellSampler.isCachedNoiseChunk(cellCountXZ);
+			this.generationHeight = generatorContext.lookup.getGenerationHeight(this.chunkX, this.chunkZ, noiseGeneratorSettings, cache);
+			this.cellCountY = Math.min(this.cellCountY, this.generationHeight / this.cellHeight);
+			this.cache2d = new CellSampler.Cache2d();
+			
+			if(cache && generatorContext.cache != null) {
+				this.chunk = generatorContext.cache.provideAtChunk(this.chunkX, this.chunkZ).getChunkReader(this.chunkX, this.chunkZ);
+			}
+		} else {
+			this.generationHeight = noiseSettings.height();
 		}
-		this.cache2d = new CellSampler.Cache2d();
-		return randomState.router();
+		return this.randomState.router();
 	}
 
 	@ModifyVariable(
@@ -72,7 +91,7 @@ class MixinNoiseChunk {
 		ordinal = 0,
 		argsOnly = true
 	)
-	private static Aquifer.FluidPicker modifyFluidPicker(Aquifer.FluidPicker fluidPicker, int i, RandomState randomState, int j, int k, NoiseSettings noiseSettings, DensityFunctions.BeardifierOrMarker beardifierOrMarker, NoiseGeneratorSettings noiseGeneratorSettings) {
+	private static Aquifer.FluidPicker modifyFluidPicker(Aquifer.FluidPicker fluidPicker, int cellCountXZ, RandomState randomState, int minBlockX, int minBlockZ, NoiseSettings noiseSettings, DensityFunctions.BeardifierOrMarker beardifierOrMarker, NoiseGeneratorSettings noiseGeneratorSettings) {
 		if((Object) randomState instanceof RTFRandomState rtfRandomState) {
 			@Nullable
 			Preset preset = rtfRandomState.preset();
@@ -105,5 +124,26 @@ class MixinNoiseChunk {
         if(function instanceof ConditionalArrayCache cache && this.cellCountXZ == 1) {
         	callback.setReturnValue(cache.new Cache(QuartPos.toBlock(this.firstNoiseX), QuartPos.toBlock(this.firstNoiseZ), QuartPos.toBlock(this.cellCountXZ)));
         }
+	}
+
+	@Redirect(
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/level/levelgen/NoiseSettings;height()I"
+		),
+		require = 1,
+		method = "computePreliminarySurfaceLevel"
+	)
+	private int computePreliminarySurfaceLevel(NoiseSettings settings, long packedPos) {
+        int blockX = ColumnPos.getX(packedPos);
+        int blockZ = ColumnPos.getZ(packedPos);
+        int genHeight;
+		GeneratorContext generatorContext;
+        if((Object) this.randomState instanceof RTFRandomState rtfRandomState && (generatorContext = rtfRandomState.generatorContext()) != null) {
+        	genHeight = generatorContext.lookup.getGenerationHeight(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ), this.generatorSettings, false);
+        } else {
+        	genHeight = this.generatorSettings.noiseSettings().height();
+        }
+        return genHeight;
 	}
 }
