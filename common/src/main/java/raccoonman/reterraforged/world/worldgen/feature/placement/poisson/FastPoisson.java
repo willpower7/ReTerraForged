@@ -18,14 +18,18 @@ public class FastPoisson {
     private static final int STATE_REJECTED = 2;
 
     private final LongList points = new LongArrayList();
+    private final LongList cellKeys = new LongArrayList();
     private final LongList priorities = new LongArrayList();
-    private final LongList radiiSq = new LongArrayList();
+    private float[] radiiSq = new float[256];
     private int[] states = new int[256];
 
+    /**
+     * Visits all accepted Poisson-disc points falling within chunk {@code (chunkX, chunkZ)}.
+     */
     public <Ctx> void visit(int seed, int chunkX, int chunkZ, Random random, FastPoissonContext context, Ctx ctx, Visitor<Ctx> visitor) {
         this.points.clear();
+        this.cellKeys.clear();
         this.priorities.clear();
-        this.radiiSq.clear();
 
         int startX = chunkX << 4;
         int startZ = chunkZ << 4;
@@ -43,17 +47,13 @@ public class FastPoisson {
             this.states[i] = STATE_UNDECIDED;
         }
 
-        // Resolve maximal independent set deterministically across chunks via point priority hashes
+        // Resolve maximal independent set deterministically across chunks via strict cell-keyed priorities
         // so chunk borders introduce neither overlaps nor seam-clipping artifacts.
         boolean changed = true;
-        int maxPasses = 6;
-        for (int pass = 0; pass < maxPasses && changed; pass++) {
+        for (int pass = 0; pass < count && changed; pass++) {
             changed = false;
             for (int i = 0; i < count; i++) {
-                if (this.states[i] != STATE_UNDECIDED) {
-                    continue;
-                }
-                if (this.isLocalWinner(i, count)) {
+                if (this.states[i] == STATE_UNDECIDED && this.isLocalWinner(i, count)) {
                     this.acceptAndCullNeighbours(i, count);
                     changed = true;
                 }
@@ -94,13 +94,15 @@ public class FastPoisson {
                 int px = NoiseUtil.floor((cx + pad + ox * effectiveJitter) * scale);
                 int pz = NoiseUtil.floor((cz + pad + oz * effectiveJitter) * scale);
 
-                long packed = PosUtil.pack(px, pz);
-                float density = context.density().compute(px, pz, 0);
-                float effectiveRadiusSq = radiusSqBase * density;
-
-                this.points.add(packed);
-                this.priorities.add(pointPriority(seed, px, pz));
-                this.radiiSq.add(Float.floatToRawIntBits(effectiveRadiusSq));
+                int index = this.points.size();
+                if (this.radiiSq.length <= index) {
+                    this.radiiSq = java.util.Arrays.copyOf(this.radiiSq, this.radiiSq.length * 2);
+                }
+                long cellKey = PosUtil.pack(cx, cz);
+                this.points.add(PosUtil.pack(px, pz));
+                this.cellKeys.add(cellKey);
+                this.priorities.add(pointPriority(seed, cx, cz));
+                this.radiiSq[index] = radiusSqBase * context.density().compute(px, pz, 0);
             }
         }
     }
@@ -109,8 +111,9 @@ public class FastPoisson {
         long point = this.points.getLong(index);
         int px = PosUtil.unpackLeft(point);
         int pz = PosUtil.unpackRight(point);
-        float r2 = Float.intBitsToFloat((int) this.radiiSq.getLong(index));
+        float r2 = this.radiiSq[index];
         long prio = this.priorities.getLong(index);
+        long cellKey = this.cellKeys.getLong(index);
 
         for (int j = 0; j < count; j++) {
             if (j == index || this.states[j] != STATE_UNDECIDED) {
@@ -119,9 +122,11 @@ public class FastPoisson {
             long other = this.points.getLong(j);
             int qx = PosUtil.unpackLeft(other);
             int qz = PosUtil.unpackRight(other);
-            float otherR2 = Float.intBitsToFloat((int) this.radiiSq.getLong(j));
-            if (dist2(px, pz, qx, qz) <= Math.max(r2, otherR2) && this.priorities.getLong(j) > prio) {
-                return false;
+            if (dist2(px, pz, qx, qz) <= Math.max(r2, this.radiiSq[j])) {
+                int cmp = Long.compare(this.priorities.getLong(j), prio);
+                if (cmp > 0 || (cmp == 0 && Long.compare(this.cellKeys.getLong(j), cellKey) > 0)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -132,7 +137,7 @@ public class FastPoisson {
         long point = this.points.getLong(index);
         int px = PosUtil.unpackLeft(point);
         int pz = PosUtil.unpackRight(point);
-        float r2 = Float.intBitsToFloat((int) this.radiiSq.getLong(index));
+        float r2 = this.radiiSq[index];
 
         for (int j = 0; j < count; j++) {
             if (this.states[j] != STATE_UNDECIDED) {

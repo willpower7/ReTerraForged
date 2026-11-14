@@ -156,21 +156,21 @@ public class PresetPlacedFeatures {
             PlacementUtils.register(ctx, FOREST_GRASS, features.getOrThrow(PresetConfiguredFeatures.FOREST_GRASS), worldSurfaceSquaredWithCount(7));
             PlacementUtils.register(ctx, BIRCH_FOREST_GRASS, features.getOrThrow(PresetConfiguredFeatures.BIRCH_FOREST_GRASS), worldSurfaceSquaredWithCount(7));
             
-            countExtraTrees(ctx, features, PLAINS_TREES, PresetConfiguredFeatures.PLAINS_TREES, 0, 0.02F, 1);
+            spreadTrees(ctx, features, PLAINS_TREES, PresetConfiguredFeatures.PLAINS_TREES, RTFPlacementModifiers.countExtra(0, 0.02F, 1));
             poissonTrees(ctx, features, FOREST_TREES, PresetConfiguredFeatures.FOREST_TREES, RTFPlacementModifiers.poisson(7, 0.25F, 0.3F, 150, 0.75F));
             poissonTrees(ctx, features, FLOWER_FOREST_TREES, PresetConfiguredFeatures.FLOWER_FOREST_TREES, RTFPlacementModifiers.poisson(8, 0.2F, 0.1F, 500, 0.75F));
             poissonTrees(ctx, features, BIRCH_TREES, PresetConfiguredFeatures.BIRCH_TREES, RTFPlacementModifiers.poisson(6, 0.25F, 0.25F, 175, 0.9F));
             poissonTrees(ctx, features, DARK_FOREST_TREES, PresetConfiguredFeatures.DARK_FOREST_TREES, RTFPlacementModifiers.poisson(5, 0.3F, 0.2F, 300, 0.75F));
-            countExtraTrees(ctx, features, SAVANNA_TREES, PresetConfiguredFeatures.SAVANNA_TREES, 0, 0.1F, 1);
-            countExtraTrees(ctx, features, BADLANDS_TREES, PresetConfiguredFeatures.BADLANDS_TREES, 0, 0.02F, 3);
+            spreadTrees(ctx, features, SAVANNA_TREES, PresetConfiguredFeatures.SAVANNA_TREES, RTFPlacementModifiers.countExtra(0, 0.1F, 1));
+            spreadTrees(ctx, features, BADLANDS_TREES, PresetConfiguredFeatures.BADLANDS_TREES, RTFPlacementModifiers.countExtra(0, 0.02F, 3));
             poissonTrees(ctx, features, WOODED_BADLANDS_TREES, PresetConfiguredFeatures.WOODED_BADLANDS_TREES, RTFPlacementModifiers.poisson(8, 0.2F, 0.8F, 0.25F, 150, 0.75F));
             poissonTrees(ctx, features, SWAMP_TREES, PresetConfiguredFeatures.SWAMP_TREES, RTFPlacementModifiers.poisson(6, 0.75F, 0.4F, 250, 0.0F));
-            rareTrees(ctx, features, MEADOW_TREES, PresetConfiguredFeatures.OAK_SMALL, 30);
+            spreadTrees(ctx, features, MEADOW_TREES, PresetConfiguredFeatures.OAK_SMALL, RarityFilter.onAverageOnceEvery(30));
             poissonTrees(ctx, features, FIR_TREES, PresetConfiguredFeatures.FIR_TREES, RTFPlacementModifiers.poisson(4, 0.25F, 0.3F, 300, 0.6F));
-            rareTrees(ctx, features, WINDSWEPT_HILLS_FIR_TREES, PresetConfiguredFeatures.FIR_TREES, 30);
+            spreadTrees(ctx, features, WINDSWEPT_HILLS_FIR_TREES, PresetConfiguredFeatures.FIR_TREES, RarityFilter.onAverageOnceEvery(30));
             poissonTrees(ctx, features, PINE_TREES, PresetConfiguredFeatures.PINE, RTFPlacementModifiers.poisson(7, 0.25F, 0.25F, 250, 0.7F));
             poissonTrees(ctx, features, SPRUCE_TREES, PresetConfiguredFeatures.PINE, RTFPlacementModifiers.poisson(7, 0.3F, 0.25F, 250, 0.75F));
-            rareTrees(ctx, features, SPRUCE_TUNDRA_TREES, PresetConfiguredFeatures.PINE, 80);
+            spreadTrees(ctx, features, SPRUCE_TUNDRA_TREES, PresetConfiguredFeatures.PINE, RarityFilter.onAverageOnceEvery(80));
             poissonTrees(ctx, features, REDWOOD_TREES, PresetConfiguredFeatures.REDWOOD_TREES, RTFPlacementModifiers.poisson(6, 0.3F, 0.25F, 250, 0.75F));
             poissonTrees(ctx, features, JUNGLE_TREES, PresetConfiguredFeatures.JUNGLE_TREES, RTFPlacementModifiers.poisson(6, 0.4F, 0.2F, 400, 0.75F));
             poissonTrees(ctx, features, JUNGLE_EDGE_TREES, PresetConfiguredFeatures.JUNGLE_EDGE_TREES, RTFPlacementModifiers.poisson(8, 0.35F, 0.25F, 350, 0.75F));
@@ -280,38 +280,18 @@ public class PresetPlacedFeatures {
         PlacementUtils.register(ctx, placedKey, features.getOrThrow(configuredKey), poisson, HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
     }
 
-    private static void countExtraTrees(
+    private static void spreadTrees(
         BootstapContext<PlacedFeature> ctx,
         HolderGetter<ConfiguredFeature<?, ?>> features,
         ResourceKey<PlacedFeature> placedKey,
         ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
-        int baseCount,
-        float extraChance,
-        int extraCount
+        PlacementModifier filter
     ) {
         PlacementUtils.register(
             ctx,
             placedKey,
             features.getOrThrow(configuredKey),
-            RTFPlacementModifiers.countExtra(baseCount, extraChance, extraCount),
-            InSquarePlacement.spread(),
-            HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE),
-            BiomeFilter.biome()
-        );
-    }
-
-    private static void rareTrees(
-        BootstapContext<PlacedFeature> ctx,
-        HolderGetter<ConfiguredFeature<?, ?>> features,
-        ResourceKey<PlacedFeature> placedKey,
-        ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
-        int chance
-    ) {
-        PlacementUtils.register(
-            ctx,
-            placedKey,
-            features.getOrThrow(configuredKey),
-            RarityFilter.onAverageOnceEvery(chance),
+            filter,
             InSquarePlacement.spread(),
             HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE),
             BiomeFilter.biome()

@@ -72,7 +72,9 @@ public class ErodeFeature extends Feature<Config> {
 					pos.set(worldX, surfaceY, worldZ);
 
 					if(biome.is(Biomes.DESERT)) {
-						erodeDesert(desertErosionVariance, levels, chunk, cell, pos, surfaceY);
+						if(erodeDesert(desertErosionVariance, levels, chunk, cell, pos, surfaceY)) {
+							removeFloatingFoliage(level, pos, surfaceY);
+						}
 						continue;
 					}
 
@@ -92,35 +94,44 @@ public class ErodeFeature extends Feature<Config> {
 		return Noises.mul(Noises.perlin(435, 8, 1), levels.scale(16));
 	}
 
-	private static void erodeDesert(Noise variance, Levels levels, ChunkAccess chunk, Cell cell, BlockPos.MutableBlockPos pos, int surfaceY) {
+	private static boolean erodeDesert(Noise variance, Levels levels, ChunkAccess chunk, Cell cell, BlockPos.MutableBlockPos pos, int surfaceY) {
 		float min = levels.ground(10);
 		float threshold = levels.ground(40);
 		if (cell.gradient < 0.15F || cell.height < min) {
-			return;
+			return false;
 		}
 
 		float value = cell.height + variance.compute(pos.getX(), pos.getZ(), 0);
-		if (cell.gradient > 0.3F || value > threshold) {
-			BlockState state = Blocks.SMOOTH_SANDSTONE.defaultBlockState();
-			if (value > threshold) {
-				if (cell.gradient > 0.975F || (cell.gradient > 0.65F && cell.gradient <= 0.75F)) {
-					state = Blocks.TERRACOTTA.defaultBlockState();
-				} else if (cell.gradient > 0.85F) {
-					state = Blocks.BROWN_TERRACOTTA.defaultBlockState();
-				} else if (cell.gradient > 0.75F) {
-					state = Blocks.ORANGE_TERRACOTTA.defaultBlockState();
-				}
-			}
+		if (cell.gradient <= 0.3F && value <= threshold) {
+			return false;
+		}
 
-			for (int dy = 0; dy < 4; dy++) {
-				chunk.setBlockState(pos.setY(surfaceY - dy), state, false);
+		BlockState state = Blocks.SMOOTH_SANDSTONE.defaultBlockState();
+		if (value > threshold) {
+			if (cell.gradient > 0.975F || (cell.gradient > 0.65F && cell.gradient <= 0.75F)) {
+				state = Blocks.TERRACOTTA.defaultBlockState();
+			} else if (cell.gradient > 0.85F) {
+				state = Blocks.BROWN_TERRACOTTA.defaultBlockState();
+			} else if (cell.gradient > 0.75F) {
+				state = Blocks.ORANGE_TERRACOTTA.defaultBlockState();
 			}
 		}
+
+		int minBuildHeight = chunk.getMinBuildHeight();
+		for (int dy = 0; dy < 4 && surfaceY - dy >= minBuildHeight; dy++) {
+			chunk.setBlockState(pos.setY(surfaceY - dy), state, false);
+		}
+		return true;
 	}
 
 	private static void removeFloatingFoliage(WorldGenLevel level, BlockPos.MutableBlockPos pos, int surfaceY) {
-		pos.setY(surfaceY);
-		while (!level.getBlockState(pos.setY(pos.getY() + 1)).canSurvive(level, pos)) {
+		int maxBuildHeight = level.getMaxBuildHeight();
+		for (int y = surfaceY + 1; y < maxBuildHeight; y++) {
+			pos.setY(y);
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir() || state.canSurvive(level, pos)) {
+				break;
+			}
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 		}
 	}

@@ -92,13 +92,11 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
 			return;
 		}
 		float shallowSpan = Math.max(1.0E-4F, this.controlPoints.shallowOcean() - this.controlPoints.deepOcean());
-		float deepAlpha = NoiseUtil.clamp((this.controlPoints.shallowOcean() - cell.continentEdge) / shallowSpan, 0.0F, 1.0F);
-		deepAlpha = deepAlpha * deepAlpha * (3.0F - 2.0F * deepAlpha);
+		float deepAlpha = NoiseUtil.interpHermite(NoiseUtil.clamp((this.controlPoints.shallowOcean() - cell.continentEdge) / shallowSpan, 0.0F, 1.0F));
 
 		float coldThreshold = 0.42F;
 		if (cell.regionTemperature < coldThreshold && deepAlpha > 0.0F) {
-			float coldAlpha = NoiseUtil.clamp((coldThreshold - cell.regionTemperature) / coldThreshold, 0.0F, 1.0F);
-			coldAlpha = coldAlpha * coldAlpha * (3.0F - 2.0F * coldAlpha);
+			float coldAlpha = NoiseUtil.interpHermite(NoiseUtil.clamp((coldThreshold - cell.regionTemperature) / coldThreshold, 0.0F, 1.0F));
 			float depthScale = Math.max(16, this.worldDepth) / 64.0F;
 			float coldPush = this.levels.scale(32) * depthScale * coldAlpha * deepAlpha;
 			float targetMaxFloor = this.levels.scale(-12) * depthScale;
@@ -151,8 +149,7 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
         CellPopulator land = new Blender(mountainShape, terrainBlend, mountains, 0.3F, 0.8F, 0.575F);
         
         int worldDepth = world.properties.worldDepth;
-        int bottomMargin = Math.min(28, Math.max(8, worldDepth / 2));
-        float minSafeOceanHeight = levels.scale(-worldDepth + bottomMargin);
+        float minSafeOceanHeight = Populators.minSafeOceanHeight(levels, worldDepth);
 
         CellPopulator deepOcean = Populators.makeDeepOcean(context.seed.next(), levels, worldDepth);
         CellPopulator shallowOcean = Populators.makeShallowOcean(context.levels);

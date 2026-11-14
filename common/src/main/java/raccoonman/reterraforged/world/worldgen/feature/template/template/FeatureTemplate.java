@@ -25,7 +25,6 @@
 package raccoonman.reterraforged.world.worldgen.feature.template.template;
 
 import java.io.IOException;
-import raccoonman.reterraforged.RTFCommon;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +45,7 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.world.worldgen.feature.template.StructureUtils;
 import raccoonman.reterraforged.world.worldgen.feature.template.buffer.BufferIterator;
 import raccoonman.reterraforged.world.worldgen.feature.template.buffer.PasteBuffer;

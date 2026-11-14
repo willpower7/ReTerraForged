@@ -34,8 +34,15 @@ public class Populators {
 	 * below shallow ocean level while clamping safely above the bottom bedrock slide.
 	 */
 	public static CellPopulator makeDeepOcean(@Deprecated int seed, Levels levels, int worldDepth) {
+		return makeDeepOcean(seed, levels.water(-7), minSafeOceanHeight(levels, worldDepth), worldDepth);
+	}
+
+	/**
+	 * Computes the lowest normalized ocean floor height that stays safely above the bottom bedrock slide.
+	 */
+	public static float minSafeOceanHeight(Levels levels, int worldDepth) {
 		int bottomMargin = Math.min(28, Math.max(8, worldDepth / 2));
-		return makeDeepOcean(seed, levels.water(-7), levels.scale(-worldDepth + bottomMargin), worldDepth);
+		return levels.scale(-worldDepth + bottomMargin);
 	}
 
 	private static CellPopulator makeDeepOcean(int seed, float shallowFloor, float minHeight, int worldDepth) {
