@@ -21,9 +21,12 @@ import net.minecraft.world.level.levelgen.NoiseChunk;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.world.level.levelgen.NoiseSettings;
+import net.minecraft.world.level.levelgen.OreVeinifier;
+import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.RandomState;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.world.worldgen.GeneratorContext;
+import raccoonman.reterraforged.world.worldgen.RTFOreVeinifier;
 import raccoonman.reterraforged.world.worldgen.RTFRandomState;
 import raccoonman.reterraforged.world.worldgen.WorldGenFlags;
 import raccoonman.reterraforged.world.worldgen.densityfunction.CellSampler;
@@ -81,6 +84,29 @@ class MixinNoiseChunk {
 			this.generationHeight = noiseSettings.height();
 		}
 		return this.randomState.router();
+	}
+
+	@Redirect(
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/level/levelgen/OreVeinifier;create(Lnet/minecraft/world/level/levelgen/DensityFunction;Lnet/minecraft/world/level/levelgen/DensityFunction;Lnet/minecraft/world/level/levelgen/DensityFunction;Lnet/minecraft/world/level/levelgen/PositionalRandomFactory;)Lnet/minecraft/world/level/levelgen/NoiseChunk$BlockStateFiller;"
+		),
+		method = "<init>"
+	)
+	private NoiseChunk.BlockStateFiller createOreVeinifier(
+		DensityFunction veinToggle,
+		DensityFunction veinRidged,
+		DensityFunction veinGap,
+		PositionalRandomFactory randomFactory
+	) {
+		if ((Object) this.randomState instanceof RTFRandomState rtfRandomState && rtfRandomState.preset() != null) {
+			int worldDepth = rtfRandomState.preset().world().properties.worldDepth;
+			if (worldDepth > 64) {
+				int ironMinY = Math.min(OreVeinifier.VeinType.IRON.minY, -worldDepth + 4);
+				return RTFOreVeinifier.create(veinToggle, veinRidged, veinGap, randomFactory, ironMinY);
+			}
+		}
+		return OreVeinifier.create(veinToggle, veinRidged, veinGap, randomFactory);
 	}
 
 	@ModifyVariable(

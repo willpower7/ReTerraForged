@@ -11,12 +11,15 @@ import net.minecraft.data.worldgen.placement.MiscOverworldPlacements;
 import net.minecraft.data.worldgen.placement.OrePlacements;
 import net.minecraft.data.worldgen.placement.PlacementUtils;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.VerticalAnchor;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.placement.BiomeFilter;
 import net.minecraft.world.level.levelgen.placement.CountPlacement;
+import net.minecraft.world.level.levelgen.placement.HeightRangePlacement;
 import net.minecraft.world.level.levelgen.placement.HeightmapPlacement;
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -25,6 +28,7 @@ import net.minecraft.world.level.levelgen.placement.RarityFilter;
 import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.data.worldgen.preset.settings.MiscellaneousSettings;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
+import raccoonman.reterraforged.data.worldgen.preset.settings.WorldSettings;
 import raccoonman.reterraforged.world.worldgen.feature.placement.RTFPlacementModifiers;
 
 public class PresetPlacedFeatures {
@@ -81,6 +85,7 @@ public class PresetPlacedFeatures {
 	public static void bootstrap(Preset preset, BootstapContext<PlacedFeature> ctx) {
 		HolderGetter<ConfiguredFeature<?, ?>> features = ctx.lookup(Registries.CONFIGURED_FEATURE);
 		MiscellaneousSettings miscellaneous = preset.miscellaneous();
+		WorldSettings.Properties properties = preset.world().properties;
 
 		PlacementModifier disableOnOverworld = RTFPlacementModifiers.blacklistDimensions(LevelStem.OVERWORLD);
 		
@@ -118,6 +123,10 @@ public class PresetPlacedFeatures {
             PlacementUtils.register(ctx, OrePlacements.ORE_DIORITE_LOWER, features.getOrThrow(OreFeatures.ORE_DIORITE), disableOnOverworld);
             PlacementUtils.register(ctx, OrePlacements.ORE_ANDESITE_LOWER, features.getOrThrow(OreFeatures.ORE_ANDESITE), disableOnOverworld);
         }
+
+        if(properties.worldDepth > 64) {
+            registerExtendedDeepOres(ctx, features, properties.worldHeight, properties.worldDepth, miscellaneous.strataDecorator);
+        }
         
         if(miscellaneous.customBiomeFeatures) {
         	PlacementUtils.register(ctx, OAK_SMALL, features.getOrThrow(PresetConfiguredFeatures.OAK_SMALL), PlacementUtils.filteredByBlockSurvival(Blocks.OAK_SAPLING));
@@ -147,29 +156,167 @@ public class PresetPlacedFeatures {
             PlacementUtils.register(ctx, FOREST_GRASS, features.getOrThrow(PresetConfiguredFeatures.FOREST_GRASS), worldSurfaceSquaredWithCount(7));
             PlacementUtils.register(ctx, BIRCH_FOREST_GRASS, features.getOrThrow(PresetConfiguredFeatures.BIRCH_FOREST_GRASS), worldSurfaceSquaredWithCount(7));
             
-            PlacementUtils.register(ctx, PLAINS_TREES, features.getOrThrow(PresetConfiguredFeatures.PLAINS_TREES), RTFPlacementModifiers.countExtra(0, 0.02F, 1), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-          	PlacementUtils.register(ctx, FOREST_TREES, features.getOrThrow(PresetConfiguredFeatures.FOREST_TREES), RTFPlacementModifiers.poisson(7, 0.25F, 0.3F, 150, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-          	PlacementUtils.register(ctx, FLOWER_FOREST_TREES, features.getOrThrow(PresetConfiguredFeatures.FLOWER_FOREST_TREES), RTFPlacementModifiers.poisson(8, 0.2F, 0.1F, 500, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-          	PlacementUtils.register(ctx, BIRCH_TREES, features.getOrThrow(PresetConfiguredFeatures.BIRCH_TREES), RTFPlacementModifiers.poisson(6, 0.25F, 0.25F, 175, 0.9F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, DARK_FOREST_TREES, features.getOrThrow(PresetConfiguredFeatures.DARK_FOREST_TREES), RTFPlacementModifiers.poisson(5, 0.3F, 0.2F, 300, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, SAVANNA_TREES, features.getOrThrow(PresetConfiguredFeatures.SAVANNA_TREES), PlacementUtils.HEIGHTMAP, RTFPlacementModifiers.countExtra(0, 0.1F, 1), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, BADLANDS_TREES, features.getOrThrow(PresetConfiguredFeatures.BADLANDS_TREES), RTFPlacementModifiers.countExtra(0, 0.02F, 3), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, WOODED_BADLANDS_TREES, features.getOrThrow(PresetConfiguredFeatures.WOODED_BADLANDS_TREES), RTFPlacementModifiers.poisson(8, 0.2F, 0.8F, 0.25F, 150, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, SWAMP_TREES, features.getOrThrow(PresetConfiguredFeatures.SWAMP_TREES), RTFPlacementModifiers.countExtra(3, 0.05F, 1), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, MEADOW_TREES, features.getOrThrow(PresetConfiguredFeatures.OAK_SMALL), RarityFilter.onAverageOnceEvery(30), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, FIR_TREES, features.getOrThrow(PresetConfiguredFeatures.FIR_TREES), RTFPlacementModifiers.poisson(4, 0.25F, 0.3F, 300, 0.6F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, WINDSWEPT_HILLS_FIR_TREES, features.getOrThrow(PresetConfiguredFeatures.FIR_TREES), RarityFilter.onAverageOnceEvery(30), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, PINE_TREES, features.getOrThrow(PresetConfiguredFeatures.PINE), RTFPlacementModifiers.poisson(7, 0.25F, 0.25F, 250, 0.7F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, SPRUCE_TREES, features.getOrThrow(PresetConfiguredFeatures.PINE), RTFPlacementModifiers.poisson(7, 0.3F, 0.25F, 250, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, SPRUCE_TUNDRA_TREES, features.getOrThrow(PresetConfiguredFeatures.PINE), RarityFilter.onAverageOnceEvery(80), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, REDWOOD_TREES, features.getOrThrow(PresetConfiguredFeatures.REDWOOD_TREES), RTFPlacementModifiers.poisson(6, 0.3F, 0.25F, 250, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, JUNGLE_TREES, features.getOrThrow(PresetConfiguredFeatures.JUNGLE_TREES), RTFPlacementModifiers.poisson(6, 0.4F, 0.2F, 400, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	PlacementUtils.register(ctx, JUNGLE_EDGE_TREES, features.getOrThrow(PresetConfiguredFeatures.JUNGLE_EDGE_TREES), RTFPlacementModifiers.poisson(8, 0.35F, 0.25F, 350, 0.75F), HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
-        	
-//			TODO shattered savanna
-//        	PlacementUtils.register(ctx, VegetationPlacements.TREES_WINDSWEPT_SAVANNA, features.getOrThrow(VegetationFeatures.TREES_SAVANNA), RTFPlacementModifiers.disabled());
+            countExtraTrees(ctx, features, PLAINS_TREES, PresetConfiguredFeatures.PLAINS_TREES, 0, 0.02F, 1);
+            poissonTrees(ctx, features, FOREST_TREES, PresetConfiguredFeatures.FOREST_TREES, RTFPlacementModifiers.poisson(7, 0.25F, 0.3F, 150, 0.75F));
+            poissonTrees(ctx, features, FLOWER_FOREST_TREES, PresetConfiguredFeatures.FLOWER_FOREST_TREES, RTFPlacementModifiers.poisson(8, 0.2F, 0.1F, 500, 0.75F));
+            poissonTrees(ctx, features, BIRCH_TREES, PresetConfiguredFeatures.BIRCH_TREES, RTFPlacementModifiers.poisson(6, 0.25F, 0.25F, 175, 0.9F));
+            poissonTrees(ctx, features, DARK_FOREST_TREES, PresetConfiguredFeatures.DARK_FOREST_TREES, RTFPlacementModifiers.poisson(5, 0.3F, 0.2F, 300, 0.75F));
+            countExtraTrees(ctx, features, SAVANNA_TREES, PresetConfiguredFeatures.SAVANNA_TREES, 0, 0.1F, 1);
+            countExtraTrees(ctx, features, BADLANDS_TREES, PresetConfiguredFeatures.BADLANDS_TREES, 0, 0.02F, 3);
+            poissonTrees(ctx, features, WOODED_BADLANDS_TREES, PresetConfiguredFeatures.WOODED_BADLANDS_TREES, RTFPlacementModifiers.poisson(8, 0.2F, 0.8F, 0.25F, 150, 0.75F));
+            poissonTrees(ctx, features, SWAMP_TREES, PresetConfiguredFeatures.SWAMP_TREES, RTFPlacementModifiers.poisson(6, 0.75F, 0.4F, 250, 0.0F));
+            rareTrees(ctx, features, MEADOW_TREES, PresetConfiguredFeatures.OAK_SMALL, 30);
+            poissonTrees(ctx, features, FIR_TREES, PresetConfiguredFeatures.FIR_TREES, RTFPlacementModifiers.poisson(4, 0.25F, 0.3F, 300, 0.6F));
+            rareTrees(ctx, features, WINDSWEPT_HILLS_FIR_TREES, PresetConfiguredFeatures.FIR_TREES, 30);
+            poissonTrees(ctx, features, PINE_TREES, PresetConfiguredFeatures.PINE, RTFPlacementModifiers.poisson(7, 0.25F, 0.25F, 250, 0.7F));
+            poissonTrees(ctx, features, SPRUCE_TREES, PresetConfiguredFeatures.PINE, RTFPlacementModifiers.poisson(7, 0.3F, 0.25F, 250, 0.75F));
+            rareTrees(ctx, features, SPRUCE_TUNDRA_TREES, PresetConfiguredFeatures.PINE, 80);
+            poissonTrees(ctx, features, REDWOOD_TREES, PresetConfiguredFeatures.REDWOOD_TREES, RTFPlacementModifiers.poisson(6, 0.3F, 0.25F, 250, 0.75F));
+            poissonTrees(ctx, features, JUNGLE_TREES, PresetConfiguredFeatures.JUNGLE_TREES, RTFPlacementModifiers.poisson(6, 0.4F, 0.2F, 400, 0.75F));
+            poissonTrees(ctx, features, JUNGLE_EDGE_TREES, PresetConfiguredFeatures.JUNGLE_EDGE_TREES, RTFPlacementModifiers.poisson(8, 0.35F, 0.25F, 350, 0.75F));
         }
 	}
+
+    /**
+     * Extends deep-reaching overworld ores downward to {@code -worldDepth}, scaling counts proportionally
+     * so ore density per block stays consistent when world depth increases past vanilla 64.
+     */
+    private static void registerExtendedDeepOres(
+        BootstapContext<PlacedFeature> ctx,
+        HolderGetter<ConfiguredFeature<?, ?>> features,
+        int worldHeight,
+        int worldDepth,
+        boolean strataDecorator
+    ) {
+        if(!strataDecorator) {
+            PlacementUtils.register(
+                ctx,
+                OrePlacements.ORE_GRAVEL,
+                features.getOrThrow(OreFeatures.ORE_GRAVEL),
+                commonOre(scaleOreCount(14, 384, worldHeight + worldDepth), HeightRangePlacement.uniform(VerticalAnchor.bottom(), VerticalAnchor.top()))
+            );
+        }
+
+        registerUniformBottomOre(ctx, features, OrePlacements.ORE_TUFF, OreFeatures.ORE_TUFF, 2, 0, worldDepth);
+        registerUniformBottomOre(ctx, features, OrePlacements.ORE_IRON_SMALL, OreFeatures.ORE_IRON_SMALL, 10, 72, worldDepth);
+        registerUniformBottomOre(ctx, features, OrePlacements.ORE_REDSTONE, OreFeatures.ORE_REDSTONE, 4, 15, worldDepth);
+        registerUniformBottomOre(ctx, features, OrePlacements.ORE_LAPIS_BURIED, OreFeatures.ORE_LAPIS_BURIED, 4, 64, worldDepth);
+        registerUniformBottomOre(ctx, features, OrePlacements.ORE_INFESTED, OreFeatures.ORE_INFESTED, 14, 63, worldDepth);
+
+        PlacementUtils.register(
+            ctx,
+            OrePlacements.ORE_GOLD,
+            features.getOrThrow(OreFeatures.ORE_GOLD_BURIED),
+            commonOre(scaleOreCount(4, 96, 32 + worldDepth), HeightRangePlacement.triangle(VerticalAnchor.bottom(), VerticalAnchor.absolute(32)))
+        );
+        PlacementUtils.register(
+            ctx,
+            OrePlacements.ORE_GOLD_LOWER,
+            features.getOrThrow(OreFeatures.ORE_GOLD_BURIED),
+            orePlacement(
+                CountPlacement.of(UniformInt.of(0, Math.max(1, scaleOreCount(1, 16, worldDepth - 48)))),
+                HeightRangePlacement.uniform(VerticalAnchor.bottom(), VerticalAnchor.absolute(-48))
+            )
+        );
+
+        PlacementUtils.register(
+            ctx,
+            OrePlacements.ORE_REDSTONE_LOWER,
+            features.getOrThrow(OreFeatures.ORE_REDSTONE),
+            commonOre(
+                scaleOreCount(8, 32, worldDepth - 32),
+                HeightRangePlacement.triangle(VerticalAnchor.aboveBottom(-(worldDepth - 32)), VerticalAnchor.absolute(-32))
+            )
+        );
+
+        int diamondSpan = worldDepth + 16;
+        HeightRangePlacement diamondRange = HeightRangePlacement.triangle(VerticalAnchor.aboveBottom(-diamondSpan), VerticalAnchor.absolute(16));
+        PlacementUtils.register(ctx, OrePlacements.ORE_DIAMOND, features.getOrThrow(OreFeatures.ORE_DIAMOND_SMALL), commonOre(scaleOreCount(7, 80, diamondSpan), diamondRange));
+        PlacementUtils.register(ctx, OrePlacements.ORE_DIAMOND_BURIED, features.getOrThrow(OreFeatures.ORE_DIAMOND_BURIED), commonOre(scaleOreCount(4, 80, diamondSpan), diamondRange));
+        PlacementUtils.register(
+            ctx,
+            OrePlacements.ORE_DIAMOND_LARGE,
+            features.getOrThrow(OreFeatures.ORE_DIAMOND_LARGE),
+            rareOre(Math.max(1, Math.round(9.0F * 80.0F / diamondSpan)), diamondRange)
+        );
+    }
+
+    private static void registerUniformBottomOre(
+        BootstapContext<PlacedFeature> ctx,
+        HolderGetter<ConfiguredFeature<?, ?>> features,
+        ResourceKey<PlacedFeature> placedKey,
+        ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
+        int baseCount,
+        int topY,
+        int worldDepth
+    ) {
+        int count = scaleOreCount(baseCount, topY + 64, topY + worldDepth);
+        PlacementUtils.register(ctx, placedKey, features.getOrThrow(configuredKey), commonOre(count, HeightRangePlacement.uniform(VerticalAnchor.bottom(), VerticalAnchor.absolute(topY))));
+    }
+
+    private static int scaleOreCount(int baseCount, int vanillaSpan, int newSpan) {
+        return Math.max(baseCount, Math.round(baseCount * (Math.max(1, newSpan) / (float) Math.max(1, vanillaSpan))));
+    }
+
+    private static List<PlacementModifier> commonOre(int count, PlacementModifier heightRange) {
+        return orePlacement(CountPlacement.of(count), heightRange);
+    }
+
+    private static List<PlacementModifier> rareOre(int chance, PlacementModifier heightRange) {
+        return orePlacement(RarityFilter.onAverageOnceEvery(chance), heightRange);
+    }
+
+    private static List<PlacementModifier> orePlacement(PlacementModifier countOrRarity, PlacementModifier heightRange) {
+        return List.of(countOrRarity, InSquarePlacement.spread(), heightRange, BiomeFilter.biome());
+    }
+
+    private static void poissonTrees(
+        BootstapContext<PlacedFeature> ctx,
+        HolderGetter<ConfiguredFeature<?, ?>> features,
+        ResourceKey<PlacedFeature> placedKey,
+        ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
+        PlacementModifier poisson
+    ) {
+        PlacementUtils.register(ctx, placedKey, features.getOrThrow(configuredKey), poisson, HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE), BiomeFilter.biome());
+    }
+
+    private static void countExtraTrees(
+        BootstapContext<PlacedFeature> ctx,
+        HolderGetter<ConfiguredFeature<?, ?>> features,
+        ResourceKey<PlacedFeature> placedKey,
+        ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
+        int baseCount,
+        float extraChance,
+        int extraCount
+    ) {
+        PlacementUtils.register(
+            ctx,
+            placedKey,
+            features.getOrThrow(configuredKey),
+            RTFPlacementModifiers.countExtra(baseCount, extraChance, extraCount),
+            InSquarePlacement.spread(),
+            HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE),
+            BiomeFilter.biome()
+        );
+    }
+
+    private static void rareTrees(
+        BootstapContext<PlacedFeature> ctx,
+        HolderGetter<ConfiguredFeature<?, ?>> features,
+        ResourceKey<PlacedFeature> placedKey,
+        ResourceKey<ConfiguredFeature<?, ?>> configuredKey,
+        int chance
+    ) {
+        PlacementUtils.register(
+            ctx,
+            placedKey,
+            features.getOrThrow(configuredKey),
+            RarityFilter.onAverageOnceEvery(chance),
+            InSquarePlacement.spread(),
+            HeightmapPlacement.onHeightmap(Types.WORLD_SURFACE),
+            BiomeFilter.biome()
+        );
+    }
 	
     public static List<PlacementModifier> worldSurfaceSquaredWithCount(int i) {
         return List.of(CountPlacement.of(i), InSquarePlacement.spread(), PlacementUtils.HEIGHTMAP_WORLD_SURFACE, BiomeFilter.biome());

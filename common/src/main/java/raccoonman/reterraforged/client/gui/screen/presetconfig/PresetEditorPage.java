@@ -70,7 +70,7 @@ public abstract class PresetEditorPage extends BisectedPage<PresetConfigScreen, 
 			try {
 				this.preview.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to close preview", e);
 			}
 		}
 
@@ -103,7 +103,7 @@ public abstract class PresetEditorPage extends BisectedPage<PresetConfigScreen, 
 			this.preset.save();
 			this.preview.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to save preset on close", e);
 		}
 	}
 	
@@ -114,7 +114,7 @@ public abstract class PresetEditorPage extends BisectedPage<PresetConfigScreen, 
 		try {
 			this.screen.applyPreset(this.preset);
 		} catch (IOException e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to apply preset on done", e);
 		}
 	}
 	
@@ -161,7 +161,7 @@ public abstract class PresetEditorPage extends BisectedPage<PresetConfigScreen, 
 	        try {
 				CacheManager.clear();
 			} catch (Exception e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to clear cache during preview init", e);
 			}
 			PerformanceConfig config = PerformanceConfig.read(PerformanceConfig.DEFAULT_FILE_PATH)
 				.resultOrPartial(RTFCommon.LOGGER::error)
@@ -203,7 +203,7 @@ public abstract class PresetEditorPage extends BisectedPage<PresetConfigScreen, 
 	    	try {
 				CacheManager.clear();
 			} catch (Exception e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to clear cache during preview shutdown", e);
 			}
 	    }
 

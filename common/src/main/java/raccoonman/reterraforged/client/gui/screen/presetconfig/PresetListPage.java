@@ -24,6 +24,7 @@ import com.mojang.serialization.JsonOps;
 import io.netty.util.internal.StringUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import raccoonman.reterraforged.RTFCommon;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -66,7 +67,7 @@ class PresetListPage extends BisectedPage<PresetConfigScreen, PresetEntry, Abstr
 			if(!Files.exists(PRESET_PATH)) Files.createDirectory(PRESET_PATH);
 			if(!Files.exists(EXPORT_PATH)) Files.createDirectory(EXPORT_PATH);
 		} catch(IOException e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to create preset directories", e);
 		}
 	}
 
@@ -138,7 +139,7 @@ class PresetListPage extends BisectedPage<PresetConfigScreen, PresetEntry, Abstr
 		try {
 			this.rebuildPresets();
 		} catch (IOException e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to rebuild preset list", e);
 		}
 	}
 
@@ -167,7 +168,7 @@ class PresetListPage extends BisectedPage<PresetConfigScreen, PresetEntry, Abstr
 			try {
 				this.screen.applyPreset(selected.getWidget());
 			} catch (IOException e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to apply selected preset", e);
 			}
 		}
 	}

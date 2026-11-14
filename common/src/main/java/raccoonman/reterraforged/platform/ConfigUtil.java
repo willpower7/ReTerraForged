@@ -29,7 +29,7 @@ public class ConfigUtil {
 			try {
 				Files.createDirectory(RTF_CONFIG_PATH);
 			} catch (IOException e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to create config directory {}", RTF_CONFIG_PATH, e);
 			}
 		}
 	}

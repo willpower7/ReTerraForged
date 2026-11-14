@@ -95,13 +95,13 @@ public class AdvancedContinentGenerator extends AbstractContinent implements Sim
                 }
             }
         }
+        cell.continentX = this.getCorrectedContinentCenter(cellPointX, sumX / 8.0F);
+        cell.continentZ = this.getCorrectedContinentCenter(cellPointY, sumY / 8.0F);
         if (this.shouldSkip(cellX, cellY)) {
             return;
         }
         cell.continentId = AbstractContinent.getCellValue(this.seed, cellX, cellY);
         cell.continentEdge = this.getDistanceValue(x, y, cellX, cellY, nearest);
-        cell.continentX = this.getCorrectedContinentCenter(cellPointX, sumX / 8.0F);
-        cell.continentZ = this.getCorrectedContinentCenter(cellPointY, sumY / 8.0F);
     }
     
     @Override

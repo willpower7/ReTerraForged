@@ -46,7 +46,8 @@ public record ClampToNearestUnit(DensityFunction function, int resolution) imple
 	}
 	
 	private double computeClamped(double value) {
-		float scaled = (int) (value * this.resolution) + 1;
-		return (scaled / this.resolution);
+		// Floor instead of truncating toward zero so negative sub-zero ocean depths step monotonically.
+		float scaled = (float) Math.floor(value * this.resolution) + 1.0F;
+		return scaled / this.resolution;
 	}
 }

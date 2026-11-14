@@ -67,11 +67,19 @@ public class FastPoissonModifier extends PlacementModifier {
         DensityNoise density = this.getDensityNoise(seed, chunkPos, level.getLevel().getChunkSource().randomState());
         FastPoissonContext poissonConfig = new FastPoissonContext(this.radius, this.jitter, this.scale, density);
         Stream.Builder<BlockPos> builder = Stream.builder();
-        poisson.visit(seed, chunkX, chunkZ, new Random(levelSeed), poissonConfig, builder, (x, z, b) -> {
+        Random chunkRandom = new Random(mixChunkSeed(levelSeed, chunkX, chunkZ));
+        poisson.visit(seed, chunkX, chunkZ, chunkRandom, poissonConfig, builder, (x, z, b) -> {
         	b.accept(new BlockPos(x, 0, z));
         });
         return builder.build();
     }
+
+	private static long mixChunkSeed(long levelSeed, int chunkX, int chunkZ) {
+		long z = levelSeed ^ (chunkX * 341873128712L + chunkZ * 132897987541L);
+		z = (z ^ (z >>> 30)) * 0xbf58476d1ce4e5b9L;
+		z = (z ^ (z >>> 27)) * 0x94d049bb133111ebL;
+		return z ^ (z >>> 31);
+	}
 
 	@Override
 	public PlacementModifierType<FastPoissonModifier> type() {

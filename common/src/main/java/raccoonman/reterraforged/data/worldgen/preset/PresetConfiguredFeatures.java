@@ -12,6 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraft.data.worldgen.features.FeatureUtils;
 import net.minecraft.data.worldgen.features.MiscOverworldFeatures;
+import net.minecraft.data.worldgen.features.TreeFeatures;
 import net.minecraft.data.worldgen.placement.PlacementUtils;
 import net.minecraft.data.worldgen.placement.TreePlacements;
 import net.minecraft.resources.ResourceKey;
@@ -157,12 +158,15 @@ public class PresetConfiguredFeatures {
 			FeatureUtils.register(ctx, HUGE_RED_MUSHROOM, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.RED_MUSHROOM));
 			FeatureUtils.register(ctx, WILLOW_SMALL, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.WILLOW_SMALL));
 			FeatureUtils.register(ctx, WILLOW_LARGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.WILLOW_LARGE));
-			FeatureUtils.register(ctx, PINE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.PINE));
+			TemplateFeature.Config<?> pineConfig = makeTree(PresetTemplatePaths.PINE);
+			FeatureUtils.register(ctx, PINE, RTFFeatures.TEMPLATE, pineConfig);
 			FeatureUtils.register(ctx, SPRUCE_SMALL, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.SPRUCE_SMALL));
 			FeatureUtils.register(ctx, SPRUCE_LARGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.SPRUCE_LARGE));
 			FeatureUtils.register(ctx, REDWOOD_LARGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.REDWOOD_LARGE));
-			FeatureUtils.register(ctx, REDWOOD_HUGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.REDWOOD_HUGE));
-			FeatureUtils.register(ctx, JUNGLE_SMALL, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.JUNGLE_SMALL));
+			TemplateFeature.Config<?> redwoodHugeConfig = makeTree(PresetTemplatePaths.REDWOOD_HUGE);
+			FeatureUtils.register(ctx, REDWOOD_HUGE, RTFFeatures.TEMPLATE, redwoodHugeConfig);
+			TemplateFeature.Config<?> jungleSmallConfig = makeTree(PresetTemplatePaths.JUNGLE_SMALL);
+			FeatureUtils.register(ctx, JUNGLE_SMALL, RTFFeatures.TEMPLATE, jungleSmallConfig);
 			FeatureUtils.register(ctx, JUNGLE_LARGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.JUNGLE_LARGE));
 			FeatureUtils.register(ctx, JUNGLE_HUGE, RTFFeatures.TEMPLATE, makeTree(PresetTemplatePaths.JUNGLE_HUGE));
 			
@@ -254,7 +258,42 @@ public class PresetConfiguredFeatures {
 	        FeatureUtils.register(ctx, MiscOverworldFeatures.DISK_CLAY, RTFFeatures.DISK, new DiskConfiguration(RuleBasedBlockStateProvider.simple(Blocks.CLAY), BlockPredicate.matchesBlocks(List.of(Blocks.DIRT, Blocks.CLAY)), UniformInt.of(2, 3), 1));
 	        FeatureUtils.register(ctx, MiscOverworldFeatures.DISK_GRAVEL, RTFFeatures.DISK, new DiskConfiguration(RuleBasedBlockStateProvider.simple(Blocks.GRAVEL), BlockPredicate.matchesBlocks(List.of(Blocks.DIRT, Blocks.GRASS_BLOCK)), UniformInt.of(2, 5), 2));
 	        FeatureUtils.register(ctx, MiscOverworldFeatures.DISK_SAND, RTFFeatures.DISK, new DiskConfiguration(new RuleBasedBlockStateProvider(BlockStateProvider.simple(Blocks.SAND), List.of(new RuleBasedBlockStateProvider.Rule(BlockPredicate.matchesBlocks(Direction.DOWN.getNormal(), Blocks.AIR), BlockStateProvider.simple(Blocks.SANDSTONE)))), BlockPredicate.matchesBlocks(List.of(Blocks.DIRT, Blocks.GRASS_BLOCK)), UniformInt.of(2, 6), 2));
+
+	        registerSaplingTrees(ctx, acaciaSmall, acaciaLarge, birchSmall, birchLarge, darkOakSmall, darkOakLarge,
+	            jungleSmallConfig, jungleLarge, jungleHuge, oakSmall, oakLarge, spruceSmall, spruceLarge, pineConfig, redwoodHugeConfig);
 	    }
+	}
+
+	private static void registerSaplingTrees(
+		BootstapContext<ConfiguredFeature<?, ?>> ctx,
+		Holder<PlacedFeature> acaciaSmall, Holder<PlacedFeature> acaciaLarge,
+		Holder<PlacedFeature> birchSmall, Holder<PlacedFeature> birchLarge,
+		Holder<PlacedFeature> darkOakSmall, Holder<PlacedFeature> darkOakLarge,
+		TemplateFeature.Config<?> jungleSmallConfig, Holder<PlacedFeature> jungleLarge, Holder<PlacedFeature> jungleHuge,
+		Holder<PlacedFeature> oakSmall, Holder<PlacedFeature> oakLarge,
+		Holder<PlacedFeature> spruceSmall, Holder<PlacedFeature> spruceLarge,
+		TemplateFeature.Config<?> pineConfig, TemplateFeature.Config<?> redwoodHugeConfig
+	) {
+		FeatureUtils.register(ctx, TreeFeatures.ACACIA, Feature.RANDOM_SELECTOR, makeSaplingSelector(acaciaSmall, acaciaLarge));
+		RandomFeatureConfiguration birchConfig = makeSaplingSelector(birchSmall, birchLarge);
+		FeatureUtils.register(ctx, TreeFeatures.BIRCH, Feature.RANDOM_SELECTOR, birchConfig);
+		FeatureUtils.register(ctx, TreeFeatures.BIRCH_BEES_005, Feature.RANDOM_SELECTOR, birchConfig);
+		FeatureUtils.register(ctx, TreeFeatures.DARK_OAK, Feature.RANDOM_SELECTOR, makeSaplingSelector(darkOakSmall, darkOakLarge));
+		FeatureUtils.register(ctx, TreeFeatures.JUNGLE_TREE_NO_VINE, RTFFeatures.TEMPLATE, jungleSmallConfig);
+		FeatureUtils.register(ctx, TreeFeatures.MEGA_JUNGLE_TREE, Feature.RANDOM_SELECTOR, makeSaplingSelector(jungleLarge, jungleHuge));
+		RandomFeatureConfiguration oakConfig = makeSaplingSelector(oakSmall, oakLarge);
+		FeatureUtils.register(ctx, TreeFeatures.OAK, Feature.RANDOM_SELECTOR, oakConfig);
+		FeatureUtils.register(ctx, TreeFeatures.OAK_BEES_005, Feature.RANDOM_SELECTOR, oakConfig);
+		FeatureUtils.register(ctx, TreeFeatures.FANCY_OAK_BEES_005, Feature.RANDOM_SELECTOR, oakConfig);
+		FeatureUtils.register(ctx, TreeFeatures.FANCY_OAK, Feature.RANDOM_SELECTOR, oakConfig);
+		FeatureUtils.register(ctx, TreeFeatures.SPRUCE, Feature.RANDOM_SELECTOR, makeSaplingSelector(spruceSmall, spruceLarge));
+		FeatureUtils.register(ctx, TreeFeatures.PINE, RTFFeatures.TEMPLATE, pineConfig);
+		FeatureUtils.register(ctx, TreeFeatures.MEGA_PINE, RTFFeatures.TEMPLATE, redwoodHugeConfig);
+		FeatureUtils.register(ctx, TreeFeatures.MEGA_SPRUCE, RTFFeatures.TEMPLATE, redwoodHugeConfig);
+	}
+
+	private static RandomFeatureConfiguration makeSaplingSelector(Holder<PlacedFeature> primary, Holder<PlacedFeature> secondary) {
+		return makeRandom(primary, List.of(makeWeighted(1.0F, primary), makeWeighted(0.5F, secondary)));
 	}
 
 	private static BushFeature.Config makeSmallBush(Block log, Block leaves, float air, float leaf, float size) {

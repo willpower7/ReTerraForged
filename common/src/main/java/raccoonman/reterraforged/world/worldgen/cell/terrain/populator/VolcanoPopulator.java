@@ -78,7 +78,7 @@ public class VolcanoPopulator implements CellPopulator, WeightedPopulator {
         float limit = this.height.compute(x, z, 0);
         float maxHeight = limit * this.inversionPoint;
         cell.weirdness = Weirdness.LOW_SLICE_NORMAL_DESCENDING.mid();
-        cell.erosion = Erosion.LEVEL_4.mid();
+        cell.erosion = Erosion.LEVEL_5.mid();
         if (value > maxHeight) {
             float steepnessModifier = 1.0F;
             float delta = (value - maxHeight) * steepnessModifier;

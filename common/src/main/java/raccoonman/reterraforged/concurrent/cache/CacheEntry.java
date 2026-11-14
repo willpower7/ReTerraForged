@@ -3,6 +3,7 @@ package raccoonman.reterraforged.concurrent.cache;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
 
+import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.concurrent.task.LazyCallable;
 
 public class CacheEntry<T> extends LazyCallable<T> implements ExpiringEntry {
@@ -40,7 +41,7 @@ public class CacheEntry<T> extends LazyCallable<T> implements ExpiringEntry {
 			try {
 				value.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to close cached entry value", e);
 			}
 		}
 	}

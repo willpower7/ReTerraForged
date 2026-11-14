@@ -21,6 +21,7 @@ import net.fabricmc.fabric.impl.biome.modification.BiomeModificationImpl;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
+import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.registries.RTFRegistries;
 import raccoonman.reterraforged.world.worldgen.biome.modifier.BiomeModifier;
 import raccoonman.reterraforged.world.worldgen.biome.modifier.fabric.FabricBiomeModifier;
@@ -63,7 +64,7 @@ public class MixinBiomeModificationImpl {
 		try {
 			return CTOR.newInstance(phase, id, selector, modifier);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to instantiate Fabric BiomeModificationImpl$ModifierRecord", e);
 			return null;
 		}
 	}
@@ -74,7 +75,7 @@ public class MixinBiomeModificationImpl {
 			ctor = Class.forName("net.fabricmc.fabric.impl.biome.modification.BiomeModificationImpl$ModifierRecord").getDeclaredConstructor(ModificationPhase.class, ResourceLocation.class, Predicate.class, BiConsumer.class);
 			ctor.setAccessible(true);
 		} catch (NoSuchMethodException | SecurityException | ClassNotFoundException e) {
-			e.printStackTrace();
+			RTFCommon.LOGGER.error("Failed to reflect Fabric BiomeModificationImpl$ModifierRecord constructor", e);
 			ctor = null;
 		}
 		CTOR = ctor;

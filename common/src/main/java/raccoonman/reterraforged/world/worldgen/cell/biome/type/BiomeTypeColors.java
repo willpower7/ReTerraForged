@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import raccoonman.reterraforged.RTFCommon;
+
 public class BiomeTypeColors {
     private static final BiomeTypeColors INSTANCE = new BiomeTypeColors();
     private Map<String, Color> colors;
@@ -22,7 +24,7 @@ public class BiomeTypeColors {
                 this.colors.put(entry.getKey().toString(), color);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            RTFCommon.LOGGER.error("Failed to load biome preview colors", e);
         }
     }
     

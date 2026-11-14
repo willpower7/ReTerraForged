@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
+import raccoonman.reterraforged.RTFCommon;
 
 public class FeatureTemplateManager {
 	private ResourceManager resourceManager;
@@ -34,7 +35,7 @@ public class FeatureTemplateManager {
 			try(InputStream stream = resource.open()) {
 				return FeatureTemplate.load(stream);
 			} catch (IOException e) {
-				e.printStackTrace();
+				RTFCommon.LOGGER.error("Failed to read feature template {}", location, e);
 				return Optional.empty();
 			}
 		}).orElse(new FeatureTemplate(ImmutableList.of()));

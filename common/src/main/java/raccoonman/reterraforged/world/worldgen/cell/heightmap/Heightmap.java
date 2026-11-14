@@ -24,6 +24,7 @@ import raccoonman.reterraforged.world.worldgen.cell.terrain.provider.TerrainProv
 import raccoonman.reterraforged.world.worldgen.cell.terrain.region.RegionLerper;
 import raccoonman.reterraforged.world.worldgen.cell.terrain.region.RegionModule;
 import raccoonman.reterraforged.world.worldgen.cell.terrain.region.RegionSelector;
+import raccoonman.reterraforged.world.worldgen.noise.NoiseUtil;
 import raccoonman.reterraforged.world.worldgen.noise.function.DistanceFunction;
 import raccoonman.reterraforged.world.worldgen.noise.function.EdgeFunction;
 import raccoonman.reterraforged.world.worldgen.noise.function.Interpolation;
@@ -31,7 +32,7 @@ import raccoonman.reterraforged.world.worldgen.noise.module.Noise;
 import raccoonman.reterraforged.world.worldgen.noise.module.Noises;
 import raccoonman.reterraforged.world.worldgen.util.Seed;
 
-public record Heightmap(CellPopulator terrain, CellPopulator region, Continent continent, Climate climate, Levels levels, ControlPoints controlPoints, float terrainFrequency, Noise beachNoise) {
+public record Heightmap(CellPopulator terrain, CellPopulator region, Continent continent, Climate climate, Levels levels, ControlPoints controlPoints, float terrainFrequency, Noise beachNoise, int worldDepth, float minSafeOceanHeight) {
 	
 	public void apply(Cell cell, float x, float z, boolean applyClimate) {
 		this.applyTerrain(cell, x, z);
@@ -75,10 +76,35 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
         }
         
         this.climate.apply(cell, x, z, applyClimate);
+        if(!applyClimate && cell.continentEdge < this.controlPoints.shallowOcean()) {
+        	// Populate ocean temperature without running full land climate masking so deep cold-ocean height stays consistent.
+        	this.climate.biomeNoise().apply(cell, x, z, x, z, false);
+        }
+        this.applyColdOceanDepth(cell);
 
         if(cell.riverMask >= riverValleyThreshold && cell.macroBiomeId > 0.5F) { 
         	cell.weirdness = -cell.weirdness;
         }
+	}
+
+	private void applyColdOceanDepth(Cell cell) {
+		if (cell.height > this.levels.water || cell.continentEdge >= this.controlPoints.shallowOcean()) {
+			return;
+		}
+		float shallowSpan = Math.max(1.0E-4F, this.controlPoints.shallowOcean() - this.controlPoints.deepOcean());
+		float deepAlpha = NoiseUtil.clamp((this.controlPoints.shallowOcean() - cell.continentEdge) / shallowSpan, 0.0F, 1.0F);
+		deepAlpha = deepAlpha * deepAlpha * (3.0F - 2.0F * deepAlpha);
+
+		float coldThreshold = 0.42F;
+		if (cell.regionTemperature < coldThreshold && deepAlpha > 0.0F) {
+			float coldAlpha = NoiseUtil.clamp((coldThreshold - cell.regionTemperature) / coldThreshold, 0.0F, 1.0F);
+			coldAlpha = coldAlpha * coldAlpha * (3.0F - 2.0F * coldAlpha);
+			float depthScale = Math.max(16, this.worldDepth) / 64.0F;
+			float coldPush = this.levels.scale(32) * depthScale * coldAlpha * deepAlpha;
+			float targetMaxFloor = this.levels.scale(-12) * depthScale;
+			cell.height = Math.min(cell.height - coldPush, NoiseUtil.lerp(cell.height, targetMaxFloor, coldAlpha * deepAlpha));
+		}
+		cell.height = Math.max(cell.height, this.minSafeOceanHeight);
 	}
 	
 	public static Heightmap make(GeneratorContext context) {
@@ -124,7 +150,11 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
         Climate climate = Climate.make(continent, context);
         CellPopulator land = new Blender(mountainShape, terrainBlend, mountains, 0.3F, 0.8F, 0.575F);
         
-        CellPopulator deepOcean = Populators.makeDeepOcean(context.seed.next(), levels.water);
+        int worldDepth = world.properties.worldDepth;
+        int bottomMargin = Math.min(28, Math.max(8, worldDepth / 2));
+        float minSafeOceanHeight = levels.scale(-worldDepth + bottomMargin);
+
+        CellPopulator deepOcean = Populators.makeDeepOcean(context.seed.next(), levels, worldDepth);
         CellPopulator shallowOcean = Populators.makeShallowOcean(context.levels);
         CellPopulator coast = Populators.makeCoast(context.levels);
         
@@ -133,19 +163,6 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
 
         Noise beachNoise = Noises.perlin2(context.seed.next(), 20, 1);
         beachNoise = Noises.mul(beachNoise, context.levels.scale(5));
-        return new Heightmap(terrain, region, continent, climate, levels, controlPoints, terrainFrequency, beachNoise);
-	}
-	
-	private static CellPopulator makeIslandPopulator(GeneratorContext context) {
-//		float islandCoastPoint = 0.01F;
-//        float islandInlandPoint = 0.005F;
-//        
-//        CellPopulator land = (cell, x, z) -> {
-//        	cell.height = context.levels.water(3);
-//        };
-//        CellPopulator oceans = new ContinentLerper3(deepOcean, shallowOcean, coast, controlPoints.deepOcean(), controlPoints.shallowOcean(), controlPoints.coast());
-//        CellPopulator terrain = new ContinentLerper2(oceans, land, controlPoints.shallowOcean(), controlPoints.inland());
-//        return terrain
-		return null;
+        return new Heightmap(terrain, region, continent, climate, levels, controlPoints, terrainFrequency, beachNoise, worldDepth, minSafeOceanHeight);
 	}
 }

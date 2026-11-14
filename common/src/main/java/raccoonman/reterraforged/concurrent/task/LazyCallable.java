@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Supplier;
 
+import raccoonman.reterraforged.RTFCommon;
+
 public abstract class LazyCallable<T> implements Callable<T>, Future<T>, Supplier<T> {
 	private StampedLock lock;
 	protected volatile T value;
@@ -110,7 +112,7 @@ public abstract class LazyCallable<T> implements Callable<T>, Future<T>, Supplie
 			try {
 				return this.callable.call();
 			} catch (Throwable t) {
-				t.printStackTrace();
+				RTFCommon.LOGGER.error("LazyCallable callable adapter failed", t);
 				return null;
 			}
 		}
@@ -133,7 +135,7 @@ public abstract class LazyCallable<T> implements Callable<T>, Future<T>, Supplie
 			try {
 				return this.future.get();
 			} catch (Throwable t) {
-				t.printStackTrace();
+				RTFCommon.LOGGER.error("LazyCallable future adapter failed", t);
 				return null;
 			}
 		}

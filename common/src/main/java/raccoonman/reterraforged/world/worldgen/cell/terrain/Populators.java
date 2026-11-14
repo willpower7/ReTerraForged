@@ -26,29 +26,47 @@ public class Populators {
 	public static final Noise DEFAULT_WEIRDNESS = Weirdness.LOW_SLICE_NORMAL_DESCENDING.source();
 
 	public static CellPopulator makeDeepOcean(@Deprecated int seed, float seaLevel) {
+		return makeDeepOcean(seed, seaLevel, 0.0F, 64);
+	}
+
+	/**
+	 * Builds the deep-ocean populator, scaling ocean depth proportionally with {@code worldDepth}
+	 * below shallow ocean level while clamping safely above the bottom bedrock slide.
+	 */
+	public static CellPopulator makeDeepOcean(@Deprecated int seed, Levels levels, int worldDepth) {
+		int bottomMargin = Math.min(28, Math.max(8, worldDepth / 2));
+		return makeDeepOcean(seed, levels.water(-7), levels.scale(-worldDepth + bottomMargin), worldDepth);
+	}
+
+	private static CellPopulator makeDeepOcean(int seed, float shallowFloor, float minHeight, int worldDepth) {
 		Noise hills = Noises.perlin(++seed, 150, 3);
-		hills = Noises.mul(hills, seaLevel * 0.7F);
+		hills = Noises.mul(hills, 0.7F);
 
 		Noise hillBias = Noises.perlin(++seed, 200, 1);
-		hillBias = Noises.mul(hillBias, seaLevel * 0.2F);
-		
+		hillBias = Noises.mul(hillBias, 0.2F);
+
 		hills = Noises.add(hills, hillBias);
-		
+
 		Noise canyons = Noises.perlin(++seed, 150, 4);
 		canyons = Noises.powCurve(canyons, 0.2F);
 		canyons = Noises.invert(canyons);
-		canyons = Noises.mul(canyons, seaLevel * 0.7F);
-		
+		canyons = Noises.mul(canyons, 0.7F);
+
 		Noise canyonBias = Noises.perlin(++seed, 170, 1);
-		canyonBias = Noises.mul(canyonBias, seaLevel * 0.15F);
-		
+		canyonBias = Noises.mul(canyonBias, 0.15F);
+
 		canyons = Noises.add(canyons, canyonBias);
-		
+
 		Noise selector = Noises.perlin(++seed, 500, 1);
-		
-		Noise height = Noises.blend(selector, hills, canyons, 0.6F, 0.65F);
-		height = Noises.warpPerlin(height, ++seed, 50, 2, 50.0F);
-		return new OceanPopulator(TerrainType.DEEP_OCEAN, height);
+
+		Noise normalizedFloor = Noises.blend(selector, hills, canyons, 0.6F, 0.65F);
+		normalizedFloor = Noises.warpPerlin(normalizedFloor, ++seed, 50, 2, 50.0F);
+
+		float depthScale = (Math.max(16, worldDepth) / 64.0F) * 1.15F;
+		float dropSpan = shallowFloor * depthScale;
+		Noise height = Noises.mul(Noises.add(Noises.mul(normalizedFloor, 1.0F / 0.9F), -1.0F), dropSpan);
+		height = Noises.add(height, shallowFloor);
+		return new OceanPopulator(TerrainType.DEEP_OCEAN, height, minHeight);
 	}
     
 	public static CellPopulator makeShallowOcean(Levels levels) {
